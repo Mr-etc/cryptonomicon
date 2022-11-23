@@ -55,6 +55,27 @@ hr {
   height: 0; /* 1 */
   overflow: visible; /* 2 */
 }
+.paginate{
+  display: flex;
+  justify-content: space-between;
+}
+.paginate__items > .item{
+  display: inline-block;
+  cursor: pointer;
+  padding: 5px;
+  margin: 0 5px;
+  border-radius: 3px;
+  background-color: rgb(243, 243, 243);
+}
+.paginate__items > .item:hover{
+  background-color: rgb(92, 92, 92);
+  color: rgb(243, 243, 243);
+  transition: .5s ease;
+}
+*[disabled]{
+  border: 1px solid #999999 !important;
+  background-color: #ababab !important;
+}
 
 /**
  * 1. Correct the inheritance and scaling of font size in all browsers.
