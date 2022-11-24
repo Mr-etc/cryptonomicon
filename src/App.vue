@@ -116,9 +116,14 @@
             Назад
           </button>
           <div class="paginate__items">
-            <span class="item" v-for="(item, key) in 5" :key="key">{{
-              item
-            }}</span>
+            <span
+              class="item"
+              v-for="(item, key) in renderPages()"
+              :key="key"
+              :class="{clicked: item == page}"
+              @click="page = item"
+              >{{ item }}</span
+            >
           </div>
           <button
             type="button"
@@ -175,6 +180,8 @@
 </template>
 
 <script>
+const AMOUNT_ELEMENTS = 3,
+  PAGINATE_SPACE = 3;
 export default {
   name: "App",
   data: () => ({
@@ -190,7 +197,33 @@ export default {
     page: 1,
     filter: "",
     hasNextPage: null,
+    amountPages: 1
   }),
+
+  computed: {
+    startPage() {
+
+      if (this.page - PAGINATE_SPACE <= 0) return 1;
+      else if (this.page + PAGINATE_SPACE > this.amountPages)
+        return this.amountPages - PAGINATE_SPACE * 2 > 0
+          ? this.amountPages - PAGINATE_SPACE * 2
+          : 1;
+      else return this.page - PAGINATE_SPACE;
+    },
+    endPage() {
+
+      if (Number(this.page) + PAGINATE_SPACE >= this.amountPages) return this.amountPages;
+      else if (Number(this.page) - PAGINATE_SPACE <= 0)
+        return (
+          Number(this.page) +
+          PAGINATE_SPACE +
+          Math.abs(this.page - PAGINATE_SPACE) +
+          1
+        );
+      else return Number(this.page) + PAGINATE_SPACE;
+    },
+  },
+
   methods: {
     subscribeToUpdate(tickerName) {
       setInterval(async () => {
@@ -229,16 +262,22 @@ export default {
     },
 
     filteredTickers() {
-      const AMOUNT_ELEMENTS = 3;
       const startPosition = (this.page - 1) * AMOUNT_ELEMENTS;
       const endPosition = this.page * AMOUNT_ELEMENTS;
       const filteredTickers = this.tickers.filter((ticker) =>
         ticker.name.includes(this.filter.toUpperCase())
       );
+      this.amountPages = Math.ceil(filteredTickers.length / AMOUNT_ELEMENTS);
 
       this.hasNextPage = filteredTickers.length > endPosition;
 
       return filteredTickers.slice(startPosition, endPosition);
+    },
+
+    renderPages() {
+      let range = [];
+      for (let i = this.startPage; i <= this.endPage; i++) range.push(i);
+      return range;
     },
 
     selectTicker(ticker) {
@@ -270,15 +309,23 @@ export default {
     },
   },
 
-  watch:{
-    filter(){
+  watch: {
+    filter() {
       this.page = 1;
 
-      window.history.pushState(null, document.title, `${window.location.pathname}?filter=${this.filter}&page=${this.page}`);
+      window.history.pushState(
+        null,
+        document.title,
+        `${window.location.pathname}?filter=${this.filter}&page=${this.page}`
+      );
     },
-    page(){
-      window.history.pushState(null, document.title, `${window.location.pathname}?filter=${this.filter}&page=${this.page}`);
-    }
+    page() {
+      window.history.pushState(
+        null,
+        document.title,
+        `${window.location.pathname}?filter=${this.filter}&page=${this.page}`
+      );
+    },
   },
 
   async created() {
@@ -301,8 +348,10 @@ export default {
       // this.tickers.forEach(ticker => this.subscribeToUpdate(ticker.name));
     }
 
-    const windowData = Object.fromEntries(new URL(window.location).searchParams.entries());
-    if(windowData){
+    const windowData = Object.fromEntries(
+      new URL(window.location).searchParams.entries()
+    );
+    if (Object.keys(windowData).length) {
       this.filter = windowData.filter;
       this.page = windowData.page;
     }

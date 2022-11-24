@@ -67,7 +67,7 @@ hr {
   border-radius: 3px;
   background-color: rgb(243, 243, 243);
 }
-.paginate__items > .item:hover{
+.paginate__items > .item:hover, .paginate__items > .item.clicked{
   background-color: rgb(92, 92, 92);
   color: rgb(243, 243, 243);
   transition: .5s ease;
