@@ -73,7 +73,7 @@
             v-for="(item, key) in pageItems"
             :key="key"
             @click="selectTicker(item)"
-            :class="{ 'border-4': sel === item }"
+            :class="{ 'border-4': selectedTicker === item }"
             class="bg-white overflow-hidden shadow rounded-lg border-purple-800 border-solid cursor-pointer"
           >
             <div class="px-4 py-5 sm:p-6 text-center">
@@ -87,7 +87,7 @@
             <div class="w-full border-t border-gray-200"></div>
             <button
               class="flex items-center justify-center font-medium w-full bg-gray-100 px-4 py-4 sm:px-6 text-md text-gray-500 hover:text-gray-600 hover:bg-gray-200 hover:opacity-20 transition-all focus:outline-none"
-              @click="deleteTicker(item)"
+              @click.stop="deleteTicker(item)"
             >
               <svg
                 class="h-5 w-5"
@@ -135,9 +135,9 @@
           </button>
         </div>
       </template>
-      <section v-if="sel" class="relative">
+      <section v-if="selectedTicker" class="relative">
         <h3 class="text-lg leading-6 font-medium text-gray-900 my-8">
-          {{ sel.name }} - USD
+          {{ selectedTicker.name }} - USD
         </h3>
         <div class="flex items-end border-gray-600 border-b border-l h-64">
           <div
@@ -148,7 +148,7 @@
           ></div>
         </div>
         <button
-          @click.stop="sel = null"
+          @click.stop="selectedTicker = null"
           type="button"
           class="absolute top-0 right-0"
         >
@@ -187,7 +187,7 @@ export default {
   data: () => ({
     ticker: "btc",
     tickers: [],
-    sel: null,
+    selectedTicker: null,
     graph: [],
     autoCompleate: [],
     addError: {
@@ -253,6 +253,14 @@ export default {
         (price) => 5 + ((price - MIN_VALUE) * 95) / (MAX_VALUE - MIN_VALUE)
       );
     },
+
+    pageStateOptions(){
+      return {
+        page: this.page,
+        filter: this.filter
+      };
+    }
+    
   },
 
   methods: {
@@ -265,8 +273,7 @@ export default {
         if (data.Response != "Error")
           this.tickers.find((item) => item.name === tickerName).price =
             data.USD > 1 ? data.USD.toFixed(2) : data.USD.toPrecision(2);
-
-        if (this.sel?.name === tickerName) this.graph.push(data.USD);
+        if (this.selectedTicker?.name === tickerName && this.selectedTicker?.price != this.graph[this.graph.length-1]) this.graph.push(data.USD);
       }, 5000);
     },
 
@@ -289,7 +296,6 @@ export default {
       this.ticker = "";
       this.tickers.push(CURRENT_TICKER);
       this.filter = "";
-      localStorage.setItem("cryptonomicon-list", JSON.stringify(this.tickers));
     },
 
     renderPages() {
@@ -299,12 +305,13 @@ export default {
     },
 
     selectTicker(ticker) {
-      this.sel = ticker;
-      this.graph = [];
+      this.selectedTicker = ticker;
     },
 
     deleteTicker(elem) {
       this.tickers = this.tickers.filter((t) => t != elem);
+      if(this.selectedTicker === elem)
+        this.selectedTicker = null;
     },
 
     filterAutoCompleate() {
@@ -319,20 +326,31 @@ export default {
   },
 
   watch: {
+    tickers(){
+      localStorage.setItem("cryptonomicon-list", JSON.stringify(this.tickers));
+    },
+
+    selectedTicker(){
+        this.graph = [];
+    },
+
+    pageItems(){
+      if(this.pageItems.length === 0 && this.page > 1)
+        this.page = this.amountPages;
+    },  
+    
     filter() {
       this.page = 1;
-
-      window.history.pushState(
-        null,
-        document.title,
-        `${window.location.pathname}?filter=${this.filter}&page=${this.page}`
-      );
     },
-    page() {
+    pageStateOptions() {
+      let currentPath = `${window.location.pathname}?`;
+      for(let key in this.pageStateOptions)
+        currentPath += `${key}=${this.pageStateOptions[key]}&`;
+      currentPath = currentPath.slice(0, -1);
       window.history.pushState(
         null,
         document.title,
-        `${window.location.pathname}?filter=${this.filter}&page=${this.page}`
+        currentPath
       );
     },
   },
