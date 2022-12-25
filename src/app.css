@@ -67,10 +67,14 @@ hr {
   border-radius: 3px;
   background-color: rgb(243, 243, 243);
 }
+.paginate__items > .item:hover, .paginate__items > .item{
+  transition-property: background-color, color;
+  transition-duration: .4s;
+  transition-timing-function: ease;
+}
 .paginate__items > .item:hover, .paginate__items > .item.clicked{
   background-color: rgb(92, 92, 92);
   color: rgb(243, 243, 243);
-  transition: .5s ease;
 }
 *[disabled]{
   border: 1px solid #999999 !important;

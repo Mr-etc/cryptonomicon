@@ -70,7 +70,7 @@
         <hr class="w-full border-t border-gray-600 my-4" />
         <div class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
           <div
-            v-for="(item, key) in filteredTickers()"
+            v-for="(item, key) in pageItems"
             :key="key"
             @click="selectTicker(item)"
             :class="{ 'border-4': sel === item }"
@@ -120,7 +120,7 @@
               class="item"
               v-for="(item, key) in renderPages()"
               :key="key"
-              :class="{clicked: item == page}"
+              :class="{ clicked: item == page }"
               @click="page = item"
               >{{ item }}</span
             >
@@ -141,7 +141,7 @@
         </h3>
         <div class="flex items-end border-gray-600 border-b border-l h-64">
           <div
-            v-for="(item, idx) in normalizeGraph()"
+            v-for="(item, idx) in normalizedGraph"
             :key="idx"
             :style="{ height: `${item}%` }"
             class="bg-purple-800 border w-10"
@@ -180,8 +180,8 @@
 </template>
 
 <script>
-const AMOUNT_ELEMENTS = 3,
-  PAGINATE_SPACE = 3;
+const AMOUNT_ELEMENTS = 1,
+  PAGINATE_SPACE = 2;
 export default {
   name: "App",
   data: () => ({
@@ -196,31 +196,62 @@ export default {
     },
     page: 1,
     filter: "",
-    hasNextPage: null,
-    amountPages: 1
   }),
 
   computed: {
     startPage() {
-
       if (this.page - PAGINATE_SPACE <= 0) return 1;
-      else if (this.page + PAGINATE_SPACE > this.amountPages)
-        return this.amountPages - PAGINATE_SPACE * 2 > 0
-          ? this.amountPages - PAGINATE_SPACE * 2
-          : 1;
-      else return this.page - PAGINATE_SPACE;
+      else if (this.page + PAGINATE_SPACE >= this.endPage) {
+        let calcFirstPage = this.endPage - PAGINATE_SPACE * 2;
+        return calcFirstPage > 0 ? calcFirstPage : 1;
+      } else return this.page - PAGINATE_SPACE;
     },
     endPage() {
-
-      if (Number(this.page) + PAGINATE_SPACE >= this.amountPages) return this.amountPages;
-      else if (Number(this.page) - PAGINATE_SPACE <= 0)
-        return (
+      if (Number(this.page) + PAGINATE_SPACE >= this.amountPages)
+        return this.amountPages;
+      else if (Number(this.page) - PAGINATE_SPACE <= 0) {
+        let calcEndPage =
           Number(this.page) +
           PAGINATE_SPACE +
           Math.abs(this.page - PAGINATE_SPACE) +
-          1
-        );
-      else return Number(this.page) + PAGINATE_SPACE;
+          1;
+        return calcEndPage > this.amountPages ? this.amountPages : calcEndPage;
+      } else return Number(this.page) + PAGINATE_SPACE;
+    },
+
+    startPosition() {
+      return (this.page - 1) * AMOUNT_ELEMENTS;
+    },
+
+    endPosition() {
+      return this.page * AMOUNT_ELEMENTS;
+    },
+
+    hasNextPage() {
+      return this.filteredTickers.length > this.endPosition;
+    },
+
+    amountPages() {
+      return Math.ceil(this.filteredTickers.length / AMOUNT_ELEMENTS);
+    },
+
+    filteredTickers() {
+      return this.tickers.filter((ticker) =>
+        ticker.name.includes(this.filter.toUpperCase())
+      );
+    },
+
+    pageItems() {
+      return this.filteredTickers.slice(this.startPosition, this.endPosition);
+    },
+
+    normalizedGraph() {
+      const MAX_VALUE = Math.max(...this.graph);
+      const MIN_VALUE =
+        Math.min(...this.graph) != MAX_VALUE ? Math.min(...this.graph) : 0;
+      return this.graph.map(
+        (price) => 5 + ((price - MIN_VALUE) * 95) / (MAX_VALUE - MIN_VALUE)
+      );
     },
   },
 
@@ -261,19 +292,6 @@ export default {
       localStorage.setItem("cryptonomicon-list", JSON.stringify(this.tickers));
     },
 
-    filteredTickers() {
-      const startPosition = (this.page - 1) * AMOUNT_ELEMENTS;
-      const endPosition = this.page * AMOUNT_ELEMENTS;
-      const filteredTickers = this.tickers.filter((ticker) =>
-        ticker.name.includes(this.filter.toUpperCase())
-      );
-      this.amountPages = Math.ceil(filteredTickers.length / AMOUNT_ELEMENTS);
-
-      this.hasNextPage = filteredTickers.length > endPosition;
-
-      return filteredTickers.slice(startPosition, endPosition);
-    },
-
     renderPages() {
       let range = [];
       for (let i = this.startPage; i <= this.endPage; i++) range.push(i);
@@ -283,15 +301,6 @@ export default {
     selectTicker(ticker) {
       this.sel = ticker;
       this.graph = [];
-    },
-
-    normalizeGraph() {
-      const MAX_VALUE = Math.max(...this.graph);
-      const MIN_VALUE =
-        Math.min(...this.graph) != MAX_VALUE ? Math.min(...this.graph) : 0;
-      return this.graph.map(
-        (price) => 5 + ((price - MIN_VALUE) * 95) / (MAX_VALUE - MIN_VALUE)
-      );
     },
 
     deleteTicker(elem) {
